@@ -40,7 +40,7 @@ import {
 	IChartApiBase,
 	MouseEventHandler,
 	MouseEventParams,
-	PaneSize
+	PaneSize,
 } from './ichart-api';
 import { IPriceScaleApi } from './iprice-scale-api';
 import { ISeriesApi } from './iseries-api';
@@ -308,13 +308,6 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 	public unsubscribeCustomPriceLineDragged(handler: CustomPriceLineDraggedEventHandler): void {
 		this._customPriceLineDraggedDelegate.unsubscribe(handler);
 	}
-
-	// public priceScale(priceScaleId?: string): IPriceScaleApi {
-	// 	if (priceScaleId === undefined) {
-	// 		warn('Using ChartApi.priceScale() method without arguments has been deprecated, pass valid price scale id instead');
-	// 		priceScaleId = this._chartWidget.model().defaultVisiblePriceScaleId();
-	// 	}
-	// }
 
 	public priceScale(priceScaleId: string): IPriceScaleApi {
 		return new PriceScaleApi(this._chartWidget, priceScaleId);
