@@ -22,6 +22,7 @@ import { TouchMouseEventData } from '../model/touch-mouse-event-data';
 import { IPriceScaleApi } from './iprice-scale-api';
 import { ISeriesApi } from './iseries-api';
 import { ITimeScaleApi } from './itime-scale-api';
+import {CustomPriceLine} from "../model/custom-price-line";
 
 /**
  * Dimensions of the Chart Pane
@@ -79,6 +80,13 @@ export interface MouseEventParams<HorzScaleItem = Time> {
  * A custom function use to handle mouse events.
  */
 export type MouseEventHandler<HorzScaleItem> = (param: MouseEventParams<HorzScaleItem>) => void;
+
+export interface CustomPriceLineDraggedEventParams {
+	customPriceLine: CustomPriceLine;
+	fromPriceString: string;
+}
+
+export type CustomPriceLineDraggedEventHandler = (param: CustomPriceLineDraggedEventParams) => void;
 
 /**
  * The main interface of a single chart.
@@ -293,6 +301,20 @@ export interface IChartApiBase<HorzScaleItem = Time> {
 	 * ```
 	 */
 	unsubscribeCrosshairMove(handler: MouseEventHandler<HorzScaleItem>): void;
+
+	/**
+	 * Adds a subscription to receive notifications on custom price lines being dragged
+	 *
+	 * @param handler - handler (function) to be called on dragged
+	 */
+	subscribeCustomPriceLineDragged(handler: CustomPriceLineDraggedEventHandler): void;
+
+	/**
+	 * Removes custom price line dragged subscription
+	 *
+	 * @param handler - previously subscribed handler
+	 */
+	unsubscribeCustomPriceLineDragged(handler: CustomPriceLineDraggedEventHandler): void;
 
 	/**
 	 * Returns API to manipulate a price scale.

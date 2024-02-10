@@ -12,6 +12,7 @@ import { PriceAxisRendererOptionsProvider } from '../renderers/price-axis-render
 
 import { Coordinate } from './coordinate';
 import { Crosshair, CrosshairOptions } from './crosshair';
+import { CustomPriceLine } from './custom-price-line';
 import { DefaultPriceScaleId, isDefaultPriceScale } from './default-price-scale';
 import { GridOptions } from './grid';
 import { ICustomSeriesPaneView } from './icustom-series';
@@ -429,6 +430,8 @@ export interface IChartModelBase {
 	setTimeScaleAnimation(animation: ITimeScaleAnimation): void;
 
 	stopTimeScaleAnimation(): void;
+
+	fireCustomPriceLineDragged(customPriceLine: CustomPriceLine, fromPriceString: string): void;
 }
 
 export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase {
@@ -448,6 +451,7 @@ export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase 
 	private _width: number = 0;
 	private _hoveredSource: HoveredSource | null = null;
 	private readonly _priceScalesOptionsChanged: Delegate = new Delegate();
+	private _customPriceLineDragged: Delegate<CustomPriceLine, string> = new Delegate();
 	private _crosshairMoved: Delegate<TimePointIndex | null, Point | null, TouchMouseEventData | null> = new Delegate();
 
 	private _backgroundTopColor: string;
@@ -592,6 +596,10 @@ export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase 
 
 	public crosshairMoved(): ISubscription<TimePointIndex | null, Point | null, TouchMouseEventData | null> {
 		return this._crosshairMoved;
+	}
+
+	public customPriceLineDragged(): ISubscription<CustomPriceLine, string> {
+		return this._customPriceLineDragged;
 	}
 
 	public setPaneHeight(pane: Pane, height: number): void {
@@ -838,6 +846,10 @@ export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase 
 		this._watermark.updateAllViews();
 		this._panes.forEach((p: Pane) => p.recalculate());
 		this.updateCrosshair();
+	}
+
+	public fireCustomPriceLineDragged(customPriceLine: CustomPriceLine, fromPriceString: string): void {
+		this._customPriceLineDragged.fire(customPriceLine, fromPriceString);
 	}
 
 	public destroy(): void {

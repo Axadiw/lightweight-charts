@@ -10,6 +10,7 @@ import { DeepPartial } from '../helpers/strict-type-checks';
 
 import { ChartModel, ChartOptionsInternal, ChartOptionsInternalBase, IChartModelBase } from '../model/chart-model';
 import { Coordinate } from '../model/coordinate';
+import { CustomPriceLine } from '../model/custom-price-line';
 import { DefaultPriceScaleId } from '../model/default-price-scale';
 import { IHorzScaleBehavior } from '../model/ihorz-scale-behavior';
 import {
@@ -51,6 +52,13 @@ export interface IChartWidgetBase {
 	setCursorStyle(style: string | null): void;
 }
 
+export interface CustomPriceLineDraggedEventParamsImpl {
+	customPriceLine: CustomPriceLine;
+	fromPriceString: string;
+}
+
+export type CustomPriceLineDraggedEventParamsImplSupplier = () => CustomPriceLineDraggedEventParamsImpl;
+
 export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBase {
 	private readonly _options: ChartOptionsInternal<HorzScaleItem>;
 	private _paneWidgets: PaneWidget[] = [];
@@ -69,6 +77,7 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 	private _clicked: Delegate<MouseEventParamsImplSupplier> = new Delegate();
 	private _dblClicked: Delegate<MouseEventParamsImplSupplier> = new Delegate();
 	private _crosshairMoved: Delegate<MouseEventParamsImplSupplier> = new Delegate();
+	private _customPriceLineDragged: Delegate<CustomPriceLineDraggedEventParamsImplSupplier> = new Delegate();
 	private _onWheelBound: (event: WheelEvent) => void;
 	private _observer: ResizeObserver | null = null;
 
@@ -104,6 +113,7 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 			horzScaleBehavior
 		);
 		this.model().crosshairMoved().subscribe(this._onPaneWidgetCrosshairMoved.bind(this), this);
+		this.model().customPriceLineDragged().subscribe(this._onCustomPriceLineDragged.bind(this), this);
 
 		this._timeAxisWidget = new TimeAxisWidget(this, this._horzScaleBehavior);
 		this._tableElement.appendChild(this._timeAxisWidget.getElement());
@@ -157,6 +167,7 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 		}
 
 		this._model.crosshairMoved().unsubscribeAll(this);
+		this._model.customPriceLineDragged().unsubscribeAll(this);
 		this._model.timeScale().optionsApplied().unsubscribeAll(this);
 		this._model.priceScalesOptionsChanged().unsubscribeAll(this);
 		this._model.destroy();
@@ -255,6 +266,10 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 
 	public crosshairMoved(): ISubscription<MouseEventParamsImplSupplier> {
 		return this._crosshairMoved;
+	}
+
+	public customPriceLineDragged(): ISubscription<CustomPriceLineDraggedEventParamsImplSupplier> {
+		return this._customPriceLineDragged;
 	}
 
 	public takeScreenshot(): HTMLCanvasElement {
@@ -811,6 +826,13 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 		this._clicked.fire(() => this._getMouseEventParamsImpl(time, point, event));
 	}
 
+	private _getCustomPriceLineDraggedEventParamsImpl(customPriceLine: CustomPriceLine, fromPriceString: string): CustomPriceLineDraggedEventParamsImpl {
+		return {
+			customPriceLine: customPriceLine,
+			fromPriceString: fromPriceString,
+		};
+	}
+
 	private _onPaneWidgetDblClicked(
 		time: TimePointIndex | null,
 		point: Point | null,
@@ -825,6 +847,10 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 		event: TouchMouseEventData | null
 	): void {
 		this._crosshairMoved.fire(() => this._getMouseEventParamsImpl(time, point, event));
+	}
+
+	private _onCustomPriceLineDragged(customPriceLine: CustomPriceLine, fromPriceString: string): void {
+		this._customPriceLineDragged.fire(() => this._getCustomPriceLineDraggedEventParamsImpl(customPriceLine, fromPriceString));
 	}
 
 	private _updateTimeAxisVisibility(): void {

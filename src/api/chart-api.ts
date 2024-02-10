@@ -1,4 +1,4 @@
-import { ChartWidget, MouseEventParamsImpl, MouseEventParamsImplSupplier } from '../gui/chart-widget';
+import { ChartWidget, CustomPriceLineDraggedEventParamsImpl, CustomPriceLineDraggedEventParamsImplSupplier, MouseEventParamsImpl, MouseEventParamsImplSupplier } from '../gui/chart-widget';
 
 import { assert, ensure, ensureDefined } from '../helpers/assertions';
 import { Delegate } from '../helpers/delegate';
@@ -34,7 +34,14 @@ import {
 import { Logical } from '../model/time-data';
 
 import { getSeriesDataCreator } from './get-series-data-creator';
-import { IChartApiBase, MouseEventHandler, MouseEventParams, PaneSize } from './ichart-api';
+import {
+	CustomPriceLineDraggedEventHandler,
+	CustomPriceLineDraggedEventParams,
+	IChartApiBase,
+	MouseEventHandler,
+	MouseEventParams,
+	PaneSize
+} from './ichart-api';
 import { IPriceScaleApi } from './iprice-scale-api';
 import { ISeriesApi } from './iseries-api';
 import { ITimeScaleApi } from './itime-scale-api';
@@ -122,6 +129,7 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 	private readonly _clickedDelegate: Delegate<MouseEventParams<HorzScaleItem>> = new Delegate();
 	private readonly _dblClickedDelegate: Delegate<MouseEventParams<HorzScaleItem>> = new Delegate();
 	private readonly _crosshairMovedDelegate: Delegate<MouseEventParams<HorzScaleItem>> = new Delegate();
+	private readonly _customPriceLineDraggedDelegate: Delegate<CustomPriceLineDraggedEventParams> = new Delegate();
 
 	private readonly _timeScaleApi: TimeScaleApi<HorzScaleItem>;
 
@@ -160,6 +168,14 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 			},
 			this
 		);
+		this._chartWidget.customPriceLineDragged().subscribe(
+			(paramSupplier: CustomPriceLineDraggedEventParamsImplSupplier) => {
+				if (this._customPriceLineDraggedDelegate.hasListeners()) {
+					this._customPriceLineDraggedDelegate.fire(this._convertCustomPriceLineDraggedParams(paramSupplier()));
+				}
+			},
+			this
+		);
 
 		const model = this._chartWidget.model();
 		this._timeScaleApi = new TimeScaleApi(model, this._chartWidget.timeAxisWidget(), this._horzScaleBehavior);
@@ -169,6 +185,7 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 		this._chartWidget.clicked().unsubscribeAll(this);
 		this._chartWidget.dblClicked().unsubscribeAll(this);
 		this._chartWidget.crosshairMoved().unsubscribeAll(this);
+		this._chartWidget.customPriceLineDragged().unsubscribeAll(this);
 
 		this._timeScaleApi.destroy();
 		this._chartWidget.destroy();
@@ -179,6 +196,7 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 		this._clickedDelegate.destroy();
 		this._dblClickedDelegate.destroy();
 		this._crosshairMovedDelegate.destroy();
+		this._customPriceLineDraggedDelegate.destroy();
 		this._dataLayer.destroy();
 	}
 
@@ -283,6 +301,20 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 	public unsubscribeDblClick(handler: MouseEventHandler<HorzScaleItem>): void {
 		this._dblClickedDelegate.unsubscribe(handler);
 	}
+	public subscribeCustomPriceLineDragged(handler: CustomPriceLineDraggedEventHandler): void {
+		this._customPriceLineDraggedDelegate.subscribe(handler);
+	}
+
+	public unsubscribeCustomPriceLineDragged(handler: CustomPriceLineDraggedEventHandler): void {
+		this._customPriceLineDraggedDelegate.unsubscribe(handler);
+	}
+
+	// public priceScale(priceScaleId?: string): IPriceScaleApi {
+	// 	if (priceScaleId === undefined) {
+	// 		warn('Using ChartApi.priceScale() method without arguments has been deprecated, pass valid price scale id instead');
+	// 		priceScaleId = this._chartWidget.model().defaultVisiblePriceScaleId();
+	// 	}
+	// }
 
 	public priceScale(priceScaleId: string): IPriceScaleApi {
 		return new PriceScaleApi(this._chartWidget, priceScaleId);
@@ -400,6 +432,13 @@ export class ChartApi<HorzScaleItem> implements IChartApiBase<HorzScaleItem>, Da
 			hoveredObjectId: param.hoveredObject,
 			seriesData,
 			sourceEvent: param.touchMouseEventData,
+		};
+	}
+
+	private _convertCustomPriceLineDraggedParams(param: CustomPriceLineDraggedEventParamsImpl): CustomPriceLineDraggedEventParams {
+		return {
+			customPriceLine: param.customPriceLine,
+			fromPriceString: param.fromPriceString,
 		};
 	}
 }
